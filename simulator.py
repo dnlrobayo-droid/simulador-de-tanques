@@ -161,9 +161,11 @@ def simular(
 
         # ── 4. Cálculo secuencial de flujos ──────────────────────────────────
 
-        # Aux → Cald
+        # Aux → Cald: limitar flujo para nunca bajar de la reserva del 20%
+        reserva_aux = 0.2 * cap_aux
+        disponible_aux = max(0.0, niv_aux - reserva_aux)
         mov_aux_cald = (
-            min(q_aux_cald, niv_aux, cap_cald - niv_cald)
+            min(q_aux_cald, disponible_aux, cap_cald - niv_cald)
             if bomba_aux_cald_on else 0.0
         )
         niv_aux  -= mov_aux_cald
@@ -173,13 +175,20 @@ def simular(
         entrada_cald = min(entrada_acueducto_cald, cap_cald - niv_cald)
         niv_cald += entrada_cald
 
-        # Consumo calderas (vapor)
-        consumo_cald = min(consumo_calderas, niv_cald)
+        # Consumo calderas (vapor): no permite bajar de la reserva del 30%
+        reserva_vapor = 0.3 * cap_cald
+        consumo_cald = min(consumo_calderas, max(0.0, niv_cald - reserva_vapor))
         niv_cald -= consumo_cald
 
-        # Cald → Comp
+        # Reguardia post-vapor: si aun así Calderas está al 30%, cerrar válvula
+        if niv_cald <= 0.3 * cap_cald:
+            valvula_cald_comp_ab = False
+
+        # Cald → Comp: limitar flujo para nunca bajar de la reserva del 30%
+        reserva_cald = 0.3 * cap_cald
+        disponible_cald = max(0.0, niv_cald - reserva_cald)
         mover_cald_comp = (
-            min(q_cald_comp, niv_cald, cap_comp - niv_comp)
+            min(q_cald_comp, disponible_cald, cap_comp - niv_comp)
             if valvula_cald_comp_ab else 0.0
         )
         niv_cald -= mover_cald_comp
@@ -189,9 +198,11 @@ def simular(
         entrada_comp = min(entrada_acueducto_comp, cap_comp - niv_comp)
         niv_comp += entrada_comp
 
-        # Comp → Prin
+        # Comp → Prin: limitar flujo para nunca bajar de la reserva del 10%
+        reserva_comp = 0.1 * cap_comp
+        disponible_comp = max(0.0, niv_comp - reserva_comp)
         mover_comp_prin = (
-            min(q_comp_prin, niv_comp, cap_prin - niv_prin)
+            min(q_comp_prin, disponible_comp, cap_prin - niv_prin)
             if bomba_comp_prin_on else 0.0
         )
         niv_comp -= mover_comp_prin
